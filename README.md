@@ -1,0 +1,1 @@
+# azure-openai-on-your-data-with-bicep
