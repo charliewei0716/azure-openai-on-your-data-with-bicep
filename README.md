@@ -8,8 +8,8 @@ Automated Deployment of Azure OpenAI On Your Data using Bicep and Creation of De
 
 ## Features
 - Automatically deploy the necessary services for AOAI On Your Data, including Storage Account, Azure OpenAI, and AI Search.
-- Utilize Deployment Script to trigger the Ingestion Jobs API, completing the On Your Data process.
-- Automatically create App Service and App Service Plan, deploying the Demo UI from the official GitHub repository.
+- Utilize Deployment Script to trigger the [Ingestion Jobs API](https://learn.microsoft.com/en-us/rest/api/azureopenai/ingestion-jobs/create?view=rest-azureopenai-2024-05-01-preview&tabs=HTTP), completing the On Your Data process.
+- Automatically create App Service and App Service Plan, deploying the Demo UI from the [official GitHub repository](https://github.com/microsoft/sample-app-aoai-chatGPT).
 - One-click deployment with the "Deploy to Azure" button as shown above.
 
 ## 🔗 Blog Post
