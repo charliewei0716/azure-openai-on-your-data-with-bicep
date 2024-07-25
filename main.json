@@ -1,0 +1,394 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.29.47.4906",
+      "templateHash": "4130888063370492952"
+    }
+  },
+  "parameters": {
+    "uniqueNameComponent": {
+      "type": "string",
+      "defaultValue": "[uniqueString(resourceGroup().id)]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}storage', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Standard_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2019-04-01",
+      "name": "[format('{0}/{1}/{2}', format('{0}storage', parameters('uniqueNameComponent')), 'default', 'data')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2024-04-01-preview",
+      "name": "[format('{0}-aoai', parameters('uniqueNameComponent'))]",
+      "location": "eastus2",
+      "kind": "OpenAI",
+      "sku": {
+        "name": "S0"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "customSubDomainName": "[format('{0}-aoai', parameters('uniqueNameComponent'))]"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2024-04-01-preview",
+      "name": "[format('{0}/{1}', format('{0}-aoai', parameters('uniqueNameComponent')), 'gpt-4o')]",
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": 100
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "gpt-4o",
+          "version": "2024-05-13"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2024-04-01-preview",
+      "name": "[format('{0}/{1}', format('{0}-aoai', parameters('uniqueNameComponent')), 'text-embedding-ada-002')]",
+      "sku": {
+        "name": "Standard",
+        "capacity": 100
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "text-embedding-ada-002",
+          "version": "2"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', format('{0}-aoai', parameters('uniqueNameComponent')), 'gpt-4o')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Search/searchServices",
+      "apiVersion": "2024-03-01-preview",
+      "name": "[format('{0}-search', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "basic"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "authOptions": {
+          "aadOrApiKey": {
+            "aadAuthFailureMode": "http401WithBearerChallenge"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.Search/searchServices/{0}', format('{0}-search', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')]",
+        "principalId": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), '2024-04-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.Search/searchServices/{0}', format('{0}-search', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')]",
+        "principalId": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), '2024-04-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', format('{0}storage', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), '2024-04-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', format('{0}-aoai', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')]",
+        "principalId": "[reference(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), '2024-03-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', format('{0}storage', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')]",
+        "principalId": "[reference(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), '2024-03-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2018-11-30",
+      "name": "[format('{0}-identity', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent'))), '2018-11-30').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', format('{0}storage', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent'))), '2018-11-30').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deploymentScripts",
+      "apiVersion": "2020-10-01",
+      "name": "[format('{0}-script', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]",
+      "kind": "AzurePowerShell",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent'))))]": {}
+        }
+      },
+      "properties": {
+        "azPowerShellVersion": "3.0",
+        "arguments": "[format('-resourceGroupName {0} -uniqueNameComponent {1} -storageAccountId {2} -aoaiKey {3}', resourceGroup().name, parameters('uniqueNameComponent'), resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), listKeys(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), '2024-04-01-preview').key1)]",
+        "scriptContent": "      param (\n        [string]$resourceGroupName,\n        [string]$uniqueNameComponent,\n        [string]$storageAccountId,\n        [string]$aoaiKey\n      )\n      \n      Set-Content -Path data.txt -Value '7月24日 颱風天'\n      $storageAccountName = $uniqueNameComponent + 'storage'\n      $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName\n      Set-AzStorageBlobContent -File 'data.txt' -Container 'data' -Blob 'data.txt' -Context $storageAccount.Context\n\n      $uri = \"https://${uniqueNameComponent}-aoai.openai.azure.com/openai/ingestion/jobs/data?api-version=2024-05-01-preview\"\n      $headers = @{'api-key' = $aoaiKey}\n      $body = @{\n        kind = \"SystemCompute\"\n        searchServiceConnection = @{\n          kind = \"EndpointWithManagedIdentity\"\n          endpoint = \"https://${uniqueNameComponent}-search.search.windows.net\"\n        }\n        datasource = @{\n          kind = \"Storage\"\n          containerName = \"data\"\n          chunkingSettings = @{\n            maxChunkSizeInTokens = 1024\n          }\n          storageAccountConnection = @{\n            kind = \"EndpointWithManagedIdentity\"\n            endpoint = \"https://${uniqueNameComponent}storage.blob.core.windows.net/\"\n            resourceId = \"ResourceId=${storageAccountId}\"\n          }\n          embeddingsSettings = @(\n            @{\n              embeddingResourceConnection = @{\n                kind = \"RelativeConnection\"\n              }\n              modelProvider = \"AOAI\"\n              deploymentName = \"text-embedding-ada-002\"\n            }\n          )\n        }\n        dataRefreshIntervalInHours = 24\n        completionAction = \"keepAllAssets\"\n      } | ConvertTo-Json -Depth 5\n       \n      Invoke-RestMethod -Uri $uri -Headers $headers -Method Put -Body $body -ContentType 'application/json'\n    ",
+        "retentionInterval": "PT1H"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]",
+        "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')))]",
+        "[extensionResourceId(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')))]",
+        "[extensionResourceId(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent')))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', format('{0}storage', parameters('uniqueNameComponent'))), resourceId('Microsoft.Search/searchServices', format('{0}-search', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-identity', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}-linuxplan', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "reserved": true
+      },
+      "sku": {
+        "name": "B1"
+      },
+      "kind": "linux"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2020-06-01",
+      "name": "[format('{0}-assistant-app', parameters('uniqueNameComponent'))]",
+      "location": "[resourceGroup().location]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('{0}-linuxplan', parameters('uniqueNameComponent')))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "linuxFxVersion": "PYTHON|3.11",
+          "alwaysOn": true,
+          "appCommandLine": "python3 -m gunicorn app:app",
+          "appSettings": [
+            {
+              "name": "AUTH_ENABLED",
+              "value": "false"
+            },
+            {
+              "name": "AZURE_OPENAI_EMBEDDING_NAME",
+              "value": "text-embedding-ada-002"
+            },
+            {
+              "name": "AZURE_OPENAI_ENDPOINT",
+              "value": "[format('https://{0}-aoai.openai.azure.com/', parameters('uniqueNameComponent'))]"
+            },
+            {
+              "name": "AZURE_OPENAI_MAX_TOKENS",
+              "value": "800"
+            },
+            {
+              "name": "AZURE_OPENAI_MODEL",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "AZURE_OPENAI_MODEL_NAME",
+              "value": "gpt-4o"
+            },
+            {
+              "name": "AZURE_OPENAI_RESOURCE",
+              "value": "[format('{0}-aoai', parameters('uniqueNameComponent'))]"
+            },
+            {
+              "name": "AZURE_OPENAI_SYSTEM_MESSAGE",
+              "value": "You are an AI assistant that helps people find information."
+            },
+            {
+              "name": "AZURE_OPENAI_TEMPERATURE",
+              "value": "0"
+            },
+            {
+              "name": "AZURE_OPENAI_TOP_P",
+              "value": "1"
+            },
+            {
+              "name": "AZURE_SEARCH_ENABLE_IN_DOMAIN",
+              "value": "true"
+            },
+            {
+              "name": "AZURE_SEARCH_INDEX",
+              "value": "data"
+            },
+            {
+              "name": "AZURE_SEARCH_QUERY_TYPE",
+              "value": "vector_simple_hybrid"
+            },
+            {
+              "name": "AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG",
+              "value": "default"
+            },
+            {
+              "name": "AZURE_SEARCH_SERVICE",
+              "value": "[format('{0}-search', parameters('uniqueNameComponent'))]"
+            },
+            {
+              "name": "AZURE_SEARCH_STRICTNESS",
+              "value": "3"
+            },
+            {
+              "name": "AZURE_SEARCH_TOP_K",
+              "value": "5"
+            },
+            {
+              "name": "AZURE_SEARCH_USE_SEMANTIC_SEARCH",
+              "value": "true"
+            },
+            {
+              "name": "DATASOURCE_TYPE",
+              "value": "AzureCognitiveSearch"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('{0}-linuxplan', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/sourcecontrols",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}', format('{0}-assistant-app', parameters('uniqueNameComponent')), 'web')]",
+      "properties": {
+        "repoUrl": "https://github.com/microsoft/sample-app-aoai-chatGPT.git",
+        "branch": "main",
+        "isManualIntegration": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', format('{0}-assistant-app', parameters('uniqueNameComponent')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', format('{0}-aoai', parameters('uniqueNameComponent')))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent'))), resourceId('Microsoft.Web/sites', format('{0}-assistant-app', parameters('uniqueNameComponent'))), resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))]",
+      "properties": {
+        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', format('{0}-assistant-app', parameters('uniqueNameComponent'))), '2020-06-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', format('{0}-assistant-app', parameters('uniqueNameComponent')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-aoai', parameters('uniqueNameComponent')))]"
+      ]
+    }
+  ]
+}
