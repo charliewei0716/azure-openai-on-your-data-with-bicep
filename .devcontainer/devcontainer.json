@@ -1,0 +1,15 @@
+{
+  "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-bicep",
+        "editorconfig.editorconfig"
+      ]
+    }
+  },
+  "features": {
+    "azure-cli": "latest"
+  }
+}
